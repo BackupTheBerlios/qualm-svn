@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<project name="qualm" default="all">
+
+  <path id="classpath">
+    <pathelement location="/usr/share/java/gnu-getopt.jar"/>
+    <pathelement location=".."/>
+  </path>
+
+  <target name="all" depends="compile"
+	  description="Build the system"/>
+
+  <target name="compile">
+    <javac debug="true" srcdir=".">
+      <classpath refid="classpath"/>
+    </javac>
+  </target>
+
+</project>

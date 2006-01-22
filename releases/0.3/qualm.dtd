@@ -1,0 +1,66 @@
+<!ELEMENT qualm-data (title?,midi-channels, patches, global?, 
+	  start-events?, cue+)>
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT midi-channels (channel+)>
+<!ELEMENT channel (#PCDATA)>
+<!ATTLIST channel 
+	  num (1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16) #REQUIRED>
+<!--
+     <midi-channels>
+       <channel num="1">Main Keyboard</channel>
+       <channel num="2">Auxiliary Keyboard</channel>
+       <channel num="10">Drum Kit</channel>
+     </midi-channels>
+-->
+<!ELEMENT patches (patch+)>
+<!ELEMENT patch (#PCDATA)>
+<!ATTLIST patch
+	  num CDATA #REQUIRED
+	  bank CDATA #IMPLIED
+	  id ID #REQUIRED>
+<!--
+     <patches>
+       <patch num="1" id="p1">Nice Piano</patch>
+       <patch num="2" id="p2">TremStr/Str</patch>
+       <patch num="5" id="p5">Organ</patch>
+     </patches>
+-->
+
+<!ELEMENT global (trigger|map-events)*>
+<!ELEMENT start-events (program-change+)>
+<!ELEMENT map-events (map-from,map-to)>
+<!ELEMENT map-from (note-on|note-off|control-change|program-change)>
+<!ELEMENT map-to (note-on|note-off|control-change|program-change)>
+<!ELEMENT events (note-on|note-off|control-change|program-change)+>
+
+<!ELEMENT cue (trigger|events|map-events)*>
+<!ATTLIST cue song CDATA #REQUIRED measure CDATA #REQUIRED>
+<!ELEMENT trigger (note-on|note-off|control-change|program-change|clear)>
+<!ATTLIST trigger
+	  delay CDATA #IMPLIED
+	  override IDREF #IMPLIED
+	  reverse (yes) #IMPLIED
+	  id ID #IMPLIED>
+<!ELEMENT note-on EMPTY>
+<!ATTLIST note-on 
+	  channel (1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16) #REQUIRED
+	  note CDATA #REQUIRED>
+<!ELEMENT note-off EMPTY>
+<!ATTLIST note-off 
+	  channel (1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16) #REQUIRED 
+	  note CDATA #REQUIRED>
+<!ELEMENT control-change EMPTY>
+<!ATTLIST control-change
+	  channel (1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16) #REQUIRED
+	  control CDATA #REQUIRED
+	  threshold CDATA #IMPLIED>
+<!ELEMENT clear EMPTY>
+<!ATTLIST clear 
+	  channel (1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16) #REQUIRED 
+	  duration CDATA #REQUIRED>
+
+<!ELEMENT program-change EMPTY>
+<!ATTLIST program-change
+	  channel (1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16) #REQUIRED 
+	  patch IDREF #REQUIRED>
+
