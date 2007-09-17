@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<project name="qualm" basedir="." default="all">
+
+  <property name="srcdir" value="${basedir}/src"/>
+  <property name="builddir" value="${basedir}/build"/>
+  <property name="testdir" value="${basedir}/test-results"/>
+
+  <path id="classpath">
+    <pathelement location="/usr/share/java/gnu-getopt.jar"/>
+    <pathelement location="/usr/share/java/junit.jar"/>
+    <pathelement location="${builddir}"/>
+  </path>
+
+  <target name="all" depends="compile,doc"
+	  description="Build the system"/>
+
+  <target name="init">
+    <mkdir dir="${builddir}"/>
+    <exec executable="svnversion"
+	  failifexecutionfails="no"
+	  outputproperty="buildversion">
+      <arg value="${srcdir}"/>
+      <arg value="-n"/>
+    </exec>
+    <copy file="${srcdir}/qualm.properties.tmpl"
+	  tofile="${builddir}/qualm.properties"/>
+    <replaceregexp file="${builddir}/qualm.properties" 
+		   match="(qualm.version.build:) \S+"
+		   replace="\1 ${buildversion}"/>
+    <echo message="Building version ${buildversion}"/>
+  </target>
+
+  <target name="compile" depends="init">
+    <javac debug="true" source="1.4" destdir="${builddir}" srcdir="${srcdir}"
+	   excludes="qualm/testing/junit/**">
+      <classpath refid="classpath"/>
+    </javac>
+  </target>
+
+  <target name="check-doc">
+    <uptodate property="docBuildPDF.notRequired" 
+	      srcfile="${basedir}/doc/manual.tex"
+	      targetfile="${basedir}/doc/manual.pdf"/>
+    <uptodate property="docBuildHTML.notRequired" 
+	      srcfile="${basedir}/doc/manual.tex"
+	      targetfile="${basedir}/doc/manual/index.html"/>
+  </target>
+
+  <target name="doc-pdf" depends="check-doc" unless="docBuildPDF.notRequired">
+    <exec dir="${basedir}/doc" executable="pdflatex"
+	  failifexecutionfails="no">
+      <arg value="manual.tex"/>
+    </exec>
+  </target>
+
+  <target name="doc-html" depends="check-doc" unless="docBuildHTML.notRequired">
+    <exec dir="${basedir}/doc" executable="latex2html"
+	  failifexecutionfails="no">
+      <arg value="manual.tex"/>
+    </exec>
+  </target>
+
+  <target name="doc" depends="doc-pdf,doc-html"/>
+
+  <target name="dist" depends="compile,doc"> 
+    <jar destfile="${basedir}/qualm.jar"
+	 excludes="${builddir}/testing/junit/**"
+	 includes="${builddir}/**/*.class ${srcdir}/qualm.properties"
+	 manifest="${srcdir}/qualm.manifest"
+	 basedir="${basedir}"/>
+  </target>
+
+  <target name="check" depends="compile-test">
+    <mkdir dir="${testdir}"/>
+    <junit printsummary="yes">
+      <classpath refid="classpath"/>
+      <formatter type="plain"/>
+      <batchtest todir="${testdir}">
+	<fileset dir="${builddir}" includes="**/junit/*Tester.class"/>
+      </batchtest>
+    </junit>
+  </target>
+
+  <target name="compile-test">
+    <javac debug="true" source="1.4" srcdir="${srcdir}" destdir="${builddir}">
+      <classpath refid="classpath"/>
+    </javac>
+  </target>
+
+
+</project>
