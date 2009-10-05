@@ -1,1 +1,0 @@
-(setq jde-global-classpath '("~"))
