@@ -1,0 +1,129 @@
+qualm-data =
+  element qualm-data {
+    element title { text }?,
+    element midi-channels { channel+ },
+    element patches { patch, (patch | patch-alias)* },
+    cue-stream+
+  }
+channel =
+  element channel {
+    attribute device-type { text }?,
+    attribute num { channelSpec },
+    text
+  }
+channelSpec = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | 
+	      "9" | "10" | "11" | "12" | "13" | "14" | "15" | "16"
+# <midi-channels>
+#   <channel num="1">Main Keyboard</channel>
+#   <channel num="2" 
+#        device-type="Roland JV-1080">Auxiliary Keyboard</channel>
+#   <channel num="10">Drum Kit</channel>
+# </midi-channels>
+patch =
+  element patch {
+    attribute num { text },
+    attribute bank { text }?,
+    [ a:defaultValue = "" ] attribute remark { text }?,
+    attribute id { xsd:ID },
+    attribute volume { volSpec }?,
+    text
+  }
+patch-alias =
+  element patch-alias { 
+    attribute target { xsd:IDREF },
+    attribute id { xsd:ID },
+    attribute volume { volSpec }?,
+    text
+  }
+volSpec = string
+# <patches>
+#   <patch num="1" id="p1">Nice Piano</patch>
+#   <patch num="2" id="p2">TremStr/Str</patch>
+#   <patch-alias id="p1_lookalike" target="p1">Really Nice Piano</patch-alias>
+#   <patch num="5" id="p5" remark="GroovyOrgn">Organ</patch>
+# </patches>
+map-events =
+  element map-events {
+    element map-from {
+      note-on | note-off | control-change | program-change
+    },
+    element map-to {
+      note-on | note-off | control-change | program-change
+    }
+  }
+# <map-events>
+#   <map-from><control-change channel="1" control="soft"/></map-from>
+#   <map-to><control-change channel="2" control="soft"/></map-to>
+# </map-events>
+events =
+  element events {
+    (note-on | note-off | control-change | program-change | note-window-change | advance)+
+  }
+cue-stream =
+  element cue-stream {
+    attribute id { xsd:ID }?,
+    global?,
+    cue*
+  }
+global = element global { (trigger | map-events)* }
+cue =
+  element cue {
+    attribute song { text },
+    attribute measure { text },
+    (trigger | events | map-events)*
+  }
+trigger =
+  element trigger {
+    attribute delay { text }?,
+    attribute override { xsd:IDREF }?,
+    attribute reverse { "yes" }?,
+    attribute id { xsd:ID }?,
+    (note-on | note-off | control-change | program-change | clear)
+  }
+note-on =
+  element note-on {
+    attribute channel { channelSpec },
+    attribute note { noteSpec },
+    empty
+  }
+note-off =
+  element note-off {
+    attribute channel { channelSpec },
+    attribute note { noteSpec },
+    empty
+  }
+noteSpec = string
+control-change =
+  element control-change {
+    attribute channel { channelSpec },
+    attribute control { text },
+    attribute threshold { text }?,
+    empty
+  }
+clear =
+  element clear {
+    attribute channel { channelSpec },
+    attribute duration { text },
+    empty
+  }
+program-change =
+  element program-change {
+    attribute channel { channelSpec },
+    attribute patch { xsd:IDREF },
+    empty
+  }
+note-window-change =
+  element note-window-change {
+    attribute channel { channelSpec },
+    attribute top { noteSpec }?,
+    attribute bottom { noteSpec }?,
+    empty
+  }
+advance =
+  element advance {
+    attribute stream { xsd:IDREF },
+    attribute song { text }?,
+    attribute measure { text }?,
+    empty
+  }
+start = qualm-data

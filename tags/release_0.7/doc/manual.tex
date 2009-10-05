@@ -1,0 +1,761 @@
+\documentclass{article}
+\usepackage{makeidx}
+\usepackage{palatino}
+\usepackage{html}
+\usepackage{xspace}
+\usepackage{alltt}
+\usepackage[margin=1in]{geometry}
+\newcommand{\q}{{\textsf{Qualm}}\xspace}
+\newcommand{\code}[1]{{\tt #1}}
+\newcommand{\attrlabel}[1]{\mbox{{\ttfamily\itshape #1}}~~--}
+\renewcommand{\descriptionlabel}[1]%
+  {\hspace{\labelsep}\attrlabel{#1}}
+\makeindex
+\newcommand{\elt}[1]{{\index{#1@\texttt{#1} element}\texttt{#1} element}}
+\begin{document}
+
+\title{\textbf{\q:} Queueing Applications for Live MIDI}
+\author{Stephen Peters}
+\maketitle
+
+\section{Rationale}
+
+\q was created to deal with the problem of live shows that need to
+switch among a large set of pre-defined synthesizer patches.  This has
+come in most handy for amateur productions of musicals, starting with
+a \htmladdnormallink{musical group at
+MIT}{http://www.mit.edu/\textasciitilde\ mtg}.
+
+Many musicals would be scored for an acoustic orchestra, but more and
+more ``rock''-style shows were appearing that wished to make use of
+different keyboard sounds.  For these, we would either use piano
+throughout, or use whatever pre-programmed sounds the keyboard had.
+If we wanted to get really fancy, we'd borrow a synth module and
+select them by hand.
+
+This worked fine until \htmladdnormallink{{\em Bat Boy: The
+Musical}}{http://en.wikipedia.org/wiki/Bat_Boy:_The_Musical}.  Before
+that show, we were looking at maybe a dozen patches in a show.  But
+{\em Bat Boy} required two keyboard players, and one of those players
+had to work with both an upper and a lower keyboard simultaneously.
+Each part had over two hundred different changes to select.
+
+For the K1 part, we did a souped-up version of our old ``select
+patches by hand'' method.  We programmed all the patches sequentially
+into a Korg NS5R synthesizer module, and configured a pedal to go
+through them one-by-one.  This worked, but since the synth module
+would only hold a limited number, we had to store each act separately,
+and download lots of information to the module before each act.  Plus,
+if you wanted to change the way one instrument sounded, you had to
+make the change and then copy it everywhere that sound got used;
+needless to say, that was a rather tedious operation, and became even
+more so when you wanted to insert or delete a patch.
+
+To avoid all that -- and because the upper- and lower-keyboard thing
+would have made that setup especially tough -- we chose a different
+route for the second keyboard part.  Each patch would be stored just
+once on a second synth module (a Roland JV-1080), and we created a
+computer program that would store information about where each patch
+was, and when the right moment occurred, it would just look up what
+the next patch should be and tell the synth module to load it.  Not
+only did we not have to worry about copying patches around, but this
+allowed us to be really flexible about what kind of trigger would
+switch the patch; the pianist could hit the Enter key on the computer,
+step on a pedal, hit a particular note on the keyboard, even
+temporarily set a special key as the trigger so that it would switch
+automatically while he or she played.  And the control file could be
+edited to insert or delete new patches, or even add in control of a
+drum module at the last minute.
+
+The software that did all this was dubbed \q, ostensibly ``Queueing
+Applications for Live MIDI,'' but really because the music directors
+for that show were very nervous about whether this could work.  Since
+then, it's been used for other patch-heavy shows like {\em Star Wars
+Trilogy: Musical Edition}, {\em The Who's Tommy}, and {\em Children of
+Eden}.  Most of these were operating a single keyboard with many
+patches, but {\em Children of Eden}, for one, actually used a single
+synthesizer module to deal with input from three separate keyboards at
+the same time, utilizing a separate stream of patches for each one.
+
+\begin{latexonly}
+\newpage
+\end{latexonly}
+\section{Installation}
+
+\q is a Java program, and as such can be installed by simply
+downloading a jar file.  In order to get MIDI support working
+properly, however, there are certain system requirements that vary
+from operating system to operating system.  Some of this information
+can also be found on the \htmladdnormallinkfoot{Java Sound
+  Resources}{http://jsresources.org} pages.
+
+\subsection{MIDI I/O}
+
+The first hurdle for getting \q working is making sure that the Java
+subsystem can handle output to MIDI hardware devices.  For different
+operating systems, there are different steps that must be followed:
+
+\subsubsection{Linux}
+
+\index{ALSA|see{Advanced Linux Sound Architecture}}
+\index{Advanced Linux Sound Architecture}
+For Linux, getting MIDI I/O working means that you need the Advanced
+Linux Sound Architecture, or ALSA.  If your laptop has a reasonably
+new install (Linux kernel 2.6 series), you already have ALSA.  That
+should mean that you can skip this paragraph.  If not, check to see if
+you have alsa by opening a terminal window and trying to run
+\code{alsamixer}.  If you have ALSA installed and configured, this
+should run and display a rather crude-looking graph of the current
+mixer settings, but you can just hit Control-C to exit.  If you don't
+have ALSA installed, you'll need to do so.  I'm not going to go
+through all the rigmarole for doing this here; there are how-to guides
+to ALSA available on the web.
+
+\subsubsection{MacOS X}
+
+\index{MacOS X}
+\index{OS X|see{MacOS X}}
+\index{Plumstone}
+\index{Mandolane}
+The Java that comes with OSX doesn't have support for MIDI I/O out of
+the box.  However, it is fairly easy to locate the
+\htmladdnormallinkfoot{Plumstone
+MIDI}{http://www.mandolane.co.uk/swPlumstone.html} project, which will
+do the right thing for OSX machines.  For PPC Macs, this exists as
+freeware; a similar project (Mandolane) exists as shareware for
+PPC/Intel installs.
+
+Installing the Plumstone jar file in your computer's
+\code{/Li\-bra\-ry/Ja\-va/Ex\-ten\-sions} folder will enable MIDI I/O.
+
+\subsubsection{Windows}
+
+As long as you're using Java 1.4 or later, you shouldn't have a
+problem with MIDI I/O under Windows.
+
+\subsection{The GetOpt Package}
+
+\index{getopt}
+\index{java-getopt}
+Assuming ALSA is installed and running, what else does \q need?  Well,
+it needs the GNU GetOpt options-parsing package.  This is a jar file,
+available from \htmladdnormallinkfoot{the author's download
+  page}{http://www.urbanophile.com/arenn/hacking/download.html}.  On
+Linux, this is probably already available as a package named
+\code{java-getopt}, \code{gnu.getopt}, or \code{libgetopt-java},
+depending on what brand of Linux you're using.  On Linux or OSX, this
+jar file should be installed into \code{/usr/share/java}; on Windows
+you should install it and add its location to your CLASSPATH variable.
+
+\begin{latexonly}
+\newpage
+\end{latexonly}
+\section{\q Control Files}
+
+\q is fairly straightforward.  It takes a control file written in
+XML, consisting of a list of patches, and a set of ``cues'' (gathered into
+independent cue ``streams'') which describe the patch changes and the
+events that will trigger the next cue in the sequence.
+
+\begin{figure}
+\begin{scriptsize}
+\begin{verbatim}
+<?xml version="1.0"?>
+<!DOCTYPE qualm-data PUBLIC "-//QUALM/DTD Qualm Data//EN" "http://qualm.berlios.de/qualm.dtd">
+
+<qualm-data>
+  <title>Example Qualm File</title>
+  <midi-channels>
+    <channel num="1" device-type="Roland JV-1080">Lower Keyboard</channel>
+    <channel num="2">Upper Keyboard</channel>
+    <channel num="4" device-type="Alesis">Drum Kit</channel>
+  </midi-channels>
+
+  <patches>
+    <patch id="Nice_Piano" bank="User" num="1">Nice Piano</patch>
+    <patch id="P2" bank="User" num="2">TremStr/Str</patch>
+    <patch id="P3" bank="User" num="3" remark="split at C5">Strs/FzzClav</patch>
+    <patch id="P4" bank="PrA"  num="15" volume="23%">Rhodes</patch>
+    <patch-alias id="P5" target="Nice_Piano">Good Piano</patch-alias>
+    <patch id="P95" bank="User" num="95">LKB/TmpF</patch>
+    <patch id="P96" bank="User" num="96">TmpG/TmpD</patch>
+  </patches>
+
+  <cue-stream id="First_Stream">
+    <global>
+      <trigger><note-on channel="1" note="c6"/></trigger>
+      <trigger reverse="yes"><note-on channel="1" note="c2"/></trigger>
+      <map-events>
+        <map-from><control-change channel="1" control="damper"/></map-from>
+        <map-to><control-change channel="2" control="80"/></map-to>
+      </map-events>
+    </global>
+    <cue song="1a" measure="10">
+      <events>
+        <program-change channel="1" patch="P3"/>
+        <advance stream="Second_Stream" song="2" measure="10"/>
+      </events>
+    </cue>
+    <cue song="3" measure="1">
+      <events><program-change channel="2" patch="P3"/></events>
+      <trigger><note-on channel="2" note="g2"/></trigger>
+    </cue>
+    <cue song="3" measure="16">
+      <events>
+        <program-change channel="4" patch="P96"/>
+        <program-change channel="1" patch="P5"/>
+      </events>
+    </cue>
+  </cue-stream>
+  <cue-stream id="Second_Stream">
+    <global>
+      <trigger><note-on channel="2" note="c6"/></trigger>
+    </global>
+    <cue song="1" measure="1">
+      <events><program-change channel="2" patch="P96"/></events>
+    </cue>
+    <cue song="2" measure="10">
+      <events><program-change channel="2" patch="P95"/></events>
+      <map-events>
+        <map-from><note-on channel="1" note="C4-Bb6"/></map-from>
+        <map-to><note-on channel="2"/></map-to>
+      </map-events>
+      <map-events>
+        <map-from><note-off channel="1" note="C4-Bb6"/></map-from>
+        <map-to><note-off channel="2"/></map-to>
+      </map-events>
+    </cue>
+  </cue-stream>
+</qualm-data>
+\end{verbatim}
+\end{scriptsize}
+\caption{An example \q data file.\label{example-file}}
+\end{figure}
+
+An example \q data file is shown in Figure~\ref{example-file}.
+
+All the XML information for \q is surrounded by a \elt{qualm-data}.
+The first element within the {\tt qualm-data} is usually a
+\elt{title}, which can give a descriptive name of the task for which
+the file has been prepared.  The rest of the data is divided broadly
+into three sections; the channel specification, the patch listing, and
+the cue streams.
+
+\subsection{Channel Specifications}
+
+\begin{verbatim}
+  <midi-channels>
+    <channel num="1" device-type="Roland JV-1080">Lower Keyboard</channel>
+    <channel num="2">Upper Keyboard</channel>
+  </midi-channels>
+\end{verbatim}
+
+\index{MIDI!channels}
+MIDI defines 16 different channels that can independently receive note
+data.  Any channel that is used by \q in a control file, however,
+needs to first be specified within the \elt{midi-channels} section of the file.
+
+Each channel is defined through a \elt{channel}, which can contain a
+brief piece of text describing the channel data.  This description
+will be seen in \q when it reports on patch changes or other channel
+updates.  {\tt channel} uses the attributes:
+
+\begin{description}
+ \item[num] The MIDI channel number that will be used for control.  A
+   required attribute.
+\index{MIDI!synth module}
+\index{MIDI!device type}
+\index{channel@\texttt{channel} element!\texttt{device-type} attribute}
+ \item[device-type] The synth model that \q will use when sending
+   events on the channel.  This value is used to determine the class
+   name for a delegate which \q uses to format messages on the MIDI
+   bus.  If not supplied, \q will assume a very basic synthesizer
+   model.
+   (Optional)
+\end{description}
+
+Using a channel in a \q data file that was not defined in {\tt
+  midi-channels} could result in run-time errors.
+
+
+\subsection{Patch Listing}
+\label{sec:patch-listing}
+
+\index{MIDI!patch}
+\index{patch}
+The \elt{patches} within the \q file contains the list of different
+sounds, or patches, that will be requested of the synth module during
+\q's operation.  The {\tt patches} section can contain either {\tt
+patch} or {\tt patch-alias} elements:
+
+\subsubsection{Patch Definitions}
+
+\begin{verbatim}
+  <patch id="P3" bank="User" num="3" remark="split at C5">Strs/FzzClav</patch>
+  <patch id="P4" bank="PrA"  num="15" volume="23%">Rhodes</patch>
+\end{verbatim}
+
+
+The \elt{patch} defines the name of the patch that \q will display
+while using that patch in operation.  This element can contain the
+attributes:
+
+\begin{description}
+\item[id] A unique identifier for this patch.  This will be used in
+  the cue section to create patch change events.
+\item[num] The patch number (or ``program number'') that will be sent
+  to the synthesizer to select the sound for this patch.
+\item[bank] A number or string that will select the appropriate
+  ``bank'' of sound programs.  Most synthesizers have more than 128
+  sounds, and thus need to select among multiple banks.  Because the
+  different synthesizers might choose different naming conventions for
+  the banks, string values for the bank are interpreted by the target
+  synth.  \footnote{Patch libraries are often synthesizer-specific,
+    so if many different synthesizer modules are used in the same
+    control file, patches should be created with an eye towards which
+    synth the patch will be destined for.}  (Optional)
+\item[remark] A comment on the patch which the synth programmer can
+  use to make notes about the development of the sound. (Optional)
+\item[volume] When loading this patch, tell the synthesizer to set the
+  volume for that channel to the given value.  This value is either a
+  number from 0-127, or can be written as a percentage using a {\tt
+  \%} character (as in {\tt "50\%"}).\footnote{Because this feature
+  uses standard MIDI controls for changing a channel's volume, it may
+  interact poorly with \index{MIDI!volume pedal}volume pedals or
+  sliders which are meant to perform the same effect.  If you're using
+  devices such as these in your synthesizer setup, it may be best to
+  avoid using the {\tt volume} attribute.} (Optional)
+\end{description}
+
+\subsubsection{Patch Aliases}
+
+\begin{verbatim}
+  <patch-alias id="P5" target="Nice_Piano">Good Piano</patch-alias>
+\end{verbatim}
+
+The \elt{patch-alias} defines a patch which is the same sound as an
+already existing patch in the list.  This can be used to call the same
+sound by a variety of different names, or to create specific scenarios
+where a patch should be played noticably louder or softer than usual.
+This element can contain the attributes:
+
+\begin{description}
+\item[target] The patch identifer that this alias references.  When
+  this alias is called in the \q cue stream, it will load the same
+  sound as the referenced patch.  {\em Note:} This should be a patch
+  identifer that exists earlier in the list of patches than this
+  alias; trying to ``forward reference'' a later patch will cause
+  warnings when loading your control file.
+\item[id] A unique identifier for this patch alias.  All patches and
+  patch aliases must have a unique identifier; there can be no
+  duplicates in the list of patches.
+\item[volume] Overrides the volume level for the given patch when
+  accessed through this alias.  For more information, see the {\tt
+    volume} attribute on the {\tt patch} element in the previous
+  section. (Optional)
+\end{description}
+
+
+\subsection{Cue Streams and Cues}
+
+\index{cue}
+The remaining section of the \q control file is for defining {\em cues}
+-- namely, what happens at a particular moment in the score, and what
+\q will expect to see in order to switch to the next cue.
+
+These cues are bundled up into one or more \elt{cue-stream}s, each of
+which represents an independent series of cues.  Each \elt{cue-stream}
+can contain an optional {\tt id} attribute which is used to reference
+the stream when necessary (see \ref{par:advancing-streams} for more
+details).
+
+Within the \elt{cue-stream} are a set of \elt{cue}s, each of which has
+a pair of attributes, {\tt song} and {\tt measure}, which define the
+order in which the cues should be visited.  \index{cue!ordering} Cues
+will be ordered first by the song number, and then by the measure
+number within a song.  If a letter appears in either the song or the
+measure information, it is assumed to come before the next-higher
+number, if appropriate.  As such, a song labeled ``13b'' will come
+after songs ``13'' and ``13a'' and before song ``14''.  A measure
+numbered simply ``a'' or ``A'' will be the first measure in the song,
+even before measure ``1''.  This corresponds to accepted notations.
+
+The contents of a \elt{cue} are for defining the cue's actions.  These
+  are divided into {\em events}, {\em map events}, and {\em triggers}.
+
+\subsubsection{Events}
+
+\index{event} In \q, {\em events} are the actions which occur when a
+cue is reached.  These are broadly defined into three groups -- {\em
+program changes} which switch patches, {\em stream advances} which
+cause another \elt{cue-stream} to change at the same time, and {\em
+note window changes}, which are used to limit the range of notes that
+the channel can use.
+
+\paragraph{Program Changes}
+
+\begin{verbatim}
+  <program-change channel="2" patch="P96"/>
+\end{verbatim}
+
+The \elt{program-change} is the most common type of event.  When \q
+switches to a cue that has a \elt{program-change}, it locates the
+requested \elt{patch} or \elt{patch-alias} from the \elt{patches}
+section (see section~\ref{sec:patch-listing}) and asks the synth
+module listening on the associated channel to load the defined patch.
+The \elt{program-change} can contain the following attributes:
+
+\begin{description}
+\item[channel] The MIDI channel to which the request should be sent.
+This should match one of the channels defined in the
+\elt{midi-channels} section of the control file.  A required attribute.
+
+\item[patch] The unique identifier for the patch, as previously defined
+in the \elt{patches} section.  If this value does not match one of the
+defined patches, an error will occur when loading the control file.  A
+required attribute.
+\end{description}
+
+\paragraph{Advancing Streams}
+\label{par:advancing-streams}
+
+\begin{verbatim}
+   <advance stream="Second_Stream" song="2" measure="10"/>
+\end{verbatim}
+
+\index{advancing streams} When working with multiple input streams,
+the \elt{advance} can be used to allow input on one stream to advance
+the patches on another.  For example, if you wanted one keyboard's
+patch-change request to alter both itself and a second keyboard
+simultaneously.  The {\tt song} and {\tt measure} attributes can be used
+to advance the target stream to a particular point; without these
+attributes the target stream will be advanced one cue.
+
+\begin{description}
+\item[stream] The id of the cue-stream to advance.
+
+\item[song] An optional attribute indicating the target song number
+  for the stream.  This is usually used in conjunction with the
+  {\tt measure} attribute below.
+
+\item[measure] An optional attribute indicating the target measure
+  number for the stream.
+\end{description}
+
+\paragraph{Note Window Changes}
+
+\begin{verbatim}
+   <note-window-change channel="1" bottom="G4"/>
+\end{verbatim}
+
+Some synthesizers can handle requests to change the top and bottom
+notes of a patch's range, so that they will only respond to notes in a
+certain part of the keyboard.  This allows you to create splits -- for
+example, making the left side of the keyboard play an acoustic bass,
+while the right side of the keyboard plays piano.  This can be done
+through MIDI ``SysEx'' messages, but are not a standard part of MIDI,
+so are not available for all synthesizer modules.\footnote{This kind
+  of behaviour can also be handled by \q using ``note-on'' and
+  ``note-off'' event maps.  This can be a useful solution if the
+  synthesizer you're using doesn't support the
+  \elt{note-window-change}.}
+
+If the \elt{note-window-change} action is available for your
+synthesizer, you can provide the following attributes:
+
+\begin{description}
+\item[channel] The MIDI channel to which the request should be sent.
+This should match one of the channels defined in the
+\elt{midi-channels} section of the control file.  A required attribute.
+
+\item[bottom] The note specification for the bottom-most note in the
+  range.  This can be either an integer for the MIDI note number, or a
+  name like ``C4'' or ``Bb3''.  (Optional)
+
+\item[top] The note specification for the top-most note in the
+  range. (Optional)
+\end{description}
+
+You must provide at least one of either the {\tt bottom} or {\tt top}
+attributes.
+
+\subsubsection{Triggers}
+\index{triggers}
+
+\begin{verbatim}
+  <trigger><note-on channel="2" note="g2"/></trigger>
+\end{verbatim}
+
+In \q, {\em triggers} are the actions that advance to the next cue in
+a stream.  Defining a trigger causes \q to listen to the MIDI events
+as they are delivered, and watch for events that match a particular
+pattern.  When a matching event is found, \q will automatically
+advance to the next patch in the cue stream.
+
+Every \elt{cue} can have a set of \elt{trigger}s that define the
+matching events for moving to the next cue.  The contents of the
+\elt{trigger} define the type of MIDI event that will be matched.
+Usually these are {\em note on} events, but {\em note off} and {\em
+control change} events can be matched as well.
+
+The \elt{trigger} can contain the {\tt reverse} attribute, which if
+given the value ``yes'' will indicate to \q that it should move
+a cue {\em backward} in the stream, rather than forward.
+
+A \elt{trigger} with a {\tt delay} attribute indicates that the
+trigger should wait the given number of seconds after activation
+before advancing to the next cue.  If later MIDI events match the
+trigger after the delay timer has begun (for example, if the same note
+is played again), a new timer will not be started.
+
+\subsubsection{Map Events}
+
+\begin{verbatim}
+  <map-events>
+    <map-from><note-on channel="1" note="C4-Bb6"/></map-from>
+    <map-to><note-on channel="2"/></map-to>
+  </map-events>
+  <map-events>
+    <map-from><control-change channel="1" control="damper"/></map-from>
+    <map-to><control-change channel="2" control="80"/></map-to>
+  </map-events>
+\end{verbatim}
+
+A {\em map event} can be used to take an incoming MIDI event that
+matches certain parameters, and output a similar MIDI event.  For
+example, it could be used to allow a sustain pedal hooked up to one
+keyboard to automatically control the sustain on another, or alter a
+spare MIDI controller so that it operates as a volume control.
+
+The \elt{map-events} can appear within a \elt{cue} to specify mappings
+that will be active while that cue is in effect.  It will contain both
+a \elt{map-from} and a \elt{map-to}, each of which can contain either
+a \elt{note-on}, \elt{note-off}, or \elt{control-change} to define the
+kind of event that will be handled by the mapper.  Each of these may
+contain a {\tt channel} attribute, which will indicate which MIDI
+channel the event will be read from (or written to).
+
+Within \elt{map-from}, a \elt{note-on} or \elt{note-off} may contain a
+{\tt note} attribute, which will indicate the note (or range of notes)
+that match the event.  For example, a value of ``A\#2'' for {\tt note}
+will match only those notes for that value, whereas closed ranges like
+``C4-Gb6'' or open-ended ranges like ``-E3'' will match ranges of
+matching notes.  When mapping such a MIDI event to another note element,
+the actual note value will be copied over.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+{\em Name} & {\em CC \#} \\ \hline
+modulation & 1 \\ \hline
+breath & 2 \\ \hline
+foot & 4 \\ \hline
+volume & 7 \\ \hline
+balance & 8 \\ \hline
+pan & 10 \\ \hline
+expression & 11 \\ \hline
+effect 1 & 12 \\ \hline
+effect 2 & 13 \\ \hline
+damper & 64 \\ \cline{1-1}
+sustain &  \\ \hline
+portamento & 65 \\ \hline
+sustenuto & 66 \\ \hline
+soft & 67 \\ \hline
+legato & 68 \\ \hline
+\end{tabular}
+\end{center}
+\caption{ \label{tbl:controller-names} Available \q controller names,
+  and the MIDI controller change (CC) number.}
+\end{table}
+
+When specifying \elt{control-change}s, the {\tt control} attribute
+specifies which control is being manipulated.  Either a MIDI
+controller number or a name for the controller can be used.
+Table~\ref{tbl:controller-names} lists the allowable names.
+
+\subsubsection{Global Triggers and Map Events}
+
+Most triggers and events are ones that should apply across the entire
+\q control file -- for example, a pedal-based input for triggering
+patch advance, or a dedicated note on the keyboard.  For these, each
+\elt{cue-stream} can have a \elt{global} section, containing
+\elt{trigger}s and \elt{map-events}s that apply across all cues in the
+stream.
+
+\begin{latexonly}
+\newpage
+\end{latexonly}
+\section{Running \q}
+
+\q is started by executing the jar file, providing the location of the
+control file on the command line.  The control file location can be
+either a path on your local system, or a URL to a remote file.
+
+Once \q is running, it will occasionally pepper the output with lines
+like
+
+\begin{verbatim}
+  K2 -> Sust. String Pad
+\end{verbatim}
+
+These are simply announcing that it's just changed the patch on the
+channel called ``K2'' to a ``Sust. String Pad'' sound.  Most of the time,
+though, what you see is something like:
+
+\begin{verbatim}
+  14.1-14.54 | 14.19-14.65 | 14.1-14.64>
+\end{verbatim}
+
+This is the main prompt.  It's telling you what cue it thinks each cue
+stream is currently handling (in this example, there are three
+streams running simultaneously).  Each cue is actually listing both
+the current cue and the next cue it will expect in that stream.  All
+the cues are indexed by song and measure number, so ``14.19-14.65''
+says that it is playing the patches associated with song 14, between
+measures 19 and 65.
+
+You can tell \q to advance to a certain point in the score by
+entering two numbers, separated by a period (``.'').  So, if you want to
+go to song 17, measure 22, you can type ``17.22'', and then \q will
+announce that it has reset the patches for that particular location in
+the score, and placed each cue stream at the proper cue:
+
+
+\begin{alltt}
+    14.1-14.54 | 14.19-14.65 | 14.1-14.64> \textbf{17.22}
+    K1 -> Harp
+    K2 -> Dulcimer
+    K3 -> Pulse Keys
+    15.1-18.1 | 17.22-17.34 | 17.14-17.45>
+\end{alltt}
+
+This is mostly useful for rehearsals, when your fearless music
+director announces that everyone's going to start playing at a specific
+spot.  It's also occasionally useful during shows, when you just want
+to sync up during long breaks to make sure you're all on the same page
+(literally).
+
+Other commands that you can type at the prompt are:
+
+\begin{description}
+\item[version] reports the current \q version and build
+      information.
+
+\item[reset] this resets all the cue streams to the start of the
+      show; kind of the same as typing ``1.1''.
+
+\item[quit] does what you probably expect it to.  Go ahead, type it
+      in.  Quitter.
+
+\item[dump] mostly useful for debugging; prints out a text
+      representation of the entire control file.
+
+\item[showmidi] more debugging; shows all the MIDI events that pass
+      through the unit (you can also get this by adding a ``--debugmidi''
+      option on the command line).  {\bf unshowmidi} will turn this
+      off.
+
+\item[adv <stream>] advance the stream named {\em stream}
+      forward one patch.  If you just hit ``Enter'' on the keyboard,
+      it has the same effect as typing ``adv'' with the name of the
+      first stream.
+
+\item[plugin {[remove]} <plugin-name>] controls
+      the plugin facility of \q.  For more information, see
+      section~\ref{sec:plugins}.
+
+\item[save] saves the current preferences (which in this case is
+      really just the list of plugins) so that \q will use them next
+      time.
+\end{description}
+
+\subsection{\q Command Line Options}
+\index{command line options}
+\index{options, command line}
+
+Some options can be given on the command line to alter \q's behavior:
+
+\begin{description}
+\item[--list] requests that \q list all the MIDI ports that it can
+  find, and exit.  This is useful for finding port names to use with
+  {\tt --output} and {\tt --input}, below.
+
+\item[--input <port>] sets the name of the input MIDI port to
+  use for receiving incoming MIDI events.  You can retrieve a list of
+  possible ports using the {\tt --list} option.
+
+\item[--output <port>] sets the name of the output MIDI port to
+  use when sending out new MIDI events.  You can retrieve a list of
+  possible ports using the {\tt --list} option.
+
+\item[--nomidi] tells \q not to bother setting up any MIDI input or
+  output ports, and instead just load the command file.  Providing
+  this option will allow you to issue commands to the \q prompt, but
+  will not allow for controlling MIDI equipment in any way.
+
+\item[--debugmidi] is a useful debugging option; it automatically sets
+  \q to print a description of all received MIDI events to the
+  console.  This is equivalent to starting \q and typing the '{\tt
+  showmidi}' command at the prompt.
+
+\item[--lint] is used to carefully check the control file for
+  formatting errors or other potential problems.  Once \q has done so,
+  it will run normally.
+
+\item[--help] prints out a brief description of these options.
+
+\end{description}
+
+\begin{latexonly}
+\newpage
+\end{latexonly}
+\section{Plugins}
+\label{sec:plugins}
+
+\q plugins are used to create additional functionality making use of
+the \q engine.  Currently, most plugins that have been developed are
+for easy-to-read monitors of the \q status.
+
+All the plugins use interfaces defined under the '{\tt qualm.plugins}'
+package.  These interfaces include:
+
+\begin{description}
+\item[qualm.plugins.CueChangeNotification] is used for plugins that
+  want updates when one of the running cue streams moves to a new cue.
+
+\item[qualm.plugins.PatchChangeNotification] is used for plugins that
+  want updates when one or more of the patches on a MIDI channel is
+  changed.
+
+\item[qualm.plugins.EventMapperNotification] is used for plugins that
+  want updates when the current set of event maps is changed.
+\end{description}
+
+Often, these interfaces are triggered all at the same time -- i.e.,
+when \q advances to a new cue.
+
+Plugins that use these interfaces can be loaded through the {\tt
+  plugin} command at the \q prompt.  Typing ``{\tt plugin
+  [plugin.name]}'' will load a new plugin into the running system,
+whereas {\tt plugin remove [plugin.name]} will disable it.  The
+current set of plugins can be stored for a later session at any time
+using the {\tt save} command.
+
+Example plugins include:
+
+\begin{description}
+\item[qualm.plugins.DisplayCueChange] shows a window indicating the
+  current cue positions for all running cue streams.
+\item[qualm.plugins.DisplayPatchChange] shows a window indicating the
+  current patches for all running cue streams.
+\item[qualm.plugins.NetworkNotifier] starts a thread that will allow
+  external programs to subscribe to all the plugin notification events
+  over the network.  An example reader of this information is in {\tt
+    misc/ExampleNetworkReader.java}.
+\end{description}
+
+\newpage
+\printindex
+
+\end{document}
